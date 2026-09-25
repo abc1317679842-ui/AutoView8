@@ -1,9 +1,9 @@
 {
   "versions": [
     {
-      "v8_version": "12.0.267.19-electron.0",
-      "node_version": "Electron 28.x",
-      "build_args": "v8_enable_pointer_compression=true v8_enable_sandbox=true"
+      "v8_version": "9.1.269.40",
+      "node_version": "Electron 13.6.9 (Myth.Cool)",
+      "build_args": "v8_enable_pointer_compression=true"
     }
   ]
 }
