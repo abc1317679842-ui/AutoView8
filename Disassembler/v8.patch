@@ -1,8 +1,8 @@
 diff --git a/src/diagnostics/objects-printer.cc b/src/diagnostics/objects-printer.cc
-index 5b546e29926..45d7b50b7f5 100644
+index aa1713e..6fa4d0f 100644
 --- a/src/diagnostics/objects-printer.cc
 +++ b/src/diagnostics/objects-printer.cc
-@@ -1687,7 +1687,6 @@ void SharedFunctionInfo::SharedFunctionInfoPrint(std::ostream& os) {
+@@ -1551,7 +1551,6 @@ void SharedFunctionInfo::SharedFunctionInfoPrint(std::ostream& os) {  // NOLINT
    os << "\n - data: " << Brief(function_data(kAcquireLoad));
    os << "\n - code (from data): ";
    os << Brief(GetCode());
@@ -10,7 +10,7 @@ index 5b546e29926..45d7b50b7f5 100644
    // Script files are often large, thus only print their {Brief} representation.
    os << "\n - script: " << Brief(script());
    os << "\n - function token position: " << function_token_position();
-@@ -1710,6 +1709,10 @@ void SharedFunctionInfo::SharedFunctionInfoPrint(std::ostream& os) {
+@@ -1574,6 +1573,11 @@ void SharedFunctionInfo::SharedFunctionInfoPrint(std::ostream& os) {  // NOLINT
      os << "<none>";
    }
    os << "\n";
@@ -18,31 +18,15 @@ index 5b546e29926..45d7b50b7f5 100644
 +  this->GetActiveBytecodeArray().Disassemble(os);
 +  os << "\nEnd BytecodeArray\n";
 +  os << std::flush;
++
  }
  
- void JSGlobalProxy::JSGlobalProxyPrint(std::ostream& os) {
+ void JSGlobalProxy::JSGlobalProxyPrint(std::ostream& os) {  // NOLINT
 diff --git a/src/objects/objects.cc b/src/objects/objects.cc
-index 559160358c1..420b3da2b66 100644
+index 18e659a..66a52ca 100644
 --- a/src/objects/objects.cc
 +++ b/src/objects/objects.cc
-@@ -1850,6 +1850,16 @@ void HeapObject::HeapObjectShortPrint(std::ostream& os) {
-     os << accumulator.ToCString().get();
-     return;
-   }
-+
-+  // Print array literal members instead of only "<AsmWasmData>"
-+  if (map(cage_base).instance_type() == ASM_WASM_DATA_TYPE) {
-+    os << "<ArrayBoilerplateDescription> ";
-+    ArrayBoilerplateDescription::cast(*this)
-+        .constant_elements()
-+        .HeapObjectShortPrint(os);
-+    return;
-+  }
-+
-   switch (map(cage_base).instance_type()) {
-     case MAP_TYPE: {
-       os << "<Map";
-@@ -1936,14 +1946,24 @@ void HeapObject::HeapObjectShortPrint(std::ostream& os) {
+@@ -1990,14 +1990,24 @@ void HeapObject::HeapObjectShortPrint(std::ostream& os) {  // NOLINT
        break;
      case FIXED_ARRAY_TYPE:
        os << "<FixedArray[" << FixedArray::cast(*this).length() << "]>";
@@ -67,7 +51,7 @@ index 559160358c1..420b3da2b66 100644
        break;
      case BYTE_ARRAY_TYPE:
        os << "<ByteArray[" << ByteArray::cast(*this).length() << "]>";
-@@ -2022,6 +2042,9 @@ void HeapObject::HeapObjectShortPrint(std::ostream& os) {
+@@ -2078,6 +2088,9 @@ void HeapObject::HeapObjectShortPrint(std::ostream& os) {  // NOLINT
        } else {
          os << "<SharedFunctionInfo>";
        }
@@ -78,10 +62,10 @@ index 559160358c1..420b3da2b66 100644
      }
      case JS_MESSAGE_OBJECT_TYPE:
 diff --git a/src/objects/string.cc b/src/objects/string.cc
-index cd134f84055..285d55fda5e 100644
+index ffa1be3..d8d6a21 100644
 --- a/src/objects/string.cc
 +++ b/src/objects/string.cc
-@@ -477,13 +477,6 @@ void String::StringShortPrint(StringStream* accumulator) {
+@@ -362,13 +362,6 @@ void String::StringShortPrint(StringStream* accumulator) {
    accumulator->Add("<String[%u]: ", len);
    accumulator->Add(PrefixForDebugPrint());
  
@@ -96,42 +80,53 @@ index cd134f84055..285d55fda5e 100644
    accumulator->Add(SuffixForDebugPrint());
    accumulator->Put('>');
 diff --git a/src/snapshot/code-serializer.cc b/src/snapshot/code-serializer.cc
-index 3f380e6a2ff..1f55cb9009a 100644
+index a4641ba..635d0d5 100644
 --- a/src/snapshot/code-serializer.cc
 +++ b/src/snapshot/code-serializer.cc
-@@ -466,6 +466,12 @@ MaybeHandle<SharedFunctionInfo> CodeSerializer::Deserialize(
-     if (FLAG_profile_deserialization) PrintF("[Deserializing failed]\n");
+@@ -340,6 +340,11 @@ MaybeHandle<SharedFunctionInfo> CodeSerializer::Deserialize(
      return MaybeHandle<SharedFunctionInfo>();
    }
-+
+ 
 +  std::cout << "\nStart SharedFunctionInfo\n";
 +  result->SharedFunctionInfoPrint(std::cout);
 +  std::cout << "\nEnd SharedFunctionInfo\n";
 +  std::cout << std::flush;
 +
-   BaselineBatchCompileIfSparkplugCompiled(isolate,
-                                           Script::cast(result->script()));
    if (FLAG_profile_deserialization) {
-@@ -651,9 +657,7 @@ SerializedCodeData::SerializedCodeData(const std::vector<byte>* payload,
+     double ms = timer.Elapsed().InMillisecondsF();
+     int length = cached_data->length();
+@@ -441,21 +446,8 @@ SerializedCodeData::SerializedCodeData(const std::vector<byte>* payload,
  
- SerializedCodeSanityCheckResult SerializedCodeData::SanityCheck(
+ SerializedCodeData::SanityCheckResult SerializedCodeData::SanityCheck(
      uint32_t expected_source_hash) const {
--  SerializedCodeSanityCheckResult result = SanityCheckWithoutSource();
--  if (result != SerializedCodeSanityCheckResult::kSuccess) return result;
--  return SanityCheckJustSource(expected_source_hash);
-+  return SerializedCodeSanityCheckResult::kSuccess;
+-  if (this->size_ < kHeaderSize) return INVALID_HEADER;
+-  uint32_t magic_number = GetMagicNumber();
+-  if (magic_number != kMagicNumber) return MAGIC_NUMBER_MISMATCH;
+-  uint32_t version_hash = GetHeaderValue(kVersionHashOffset);
+-  uint32_t source_hash = GetHeaderValue(kSourceHashOffset);
+-  uint32_t flags_hash = GetHeaderValue(kFlagHashOffset);
+-  uint32_t payload_length = GetHeaderValue(kPayloadLengthOffset);
+-  uint32_t c = GetHeaderValue(kChecksumOffset);
+-  if (version_hash != Version::Hash()) return VERSION_MISMATCH;
+-  if (source_hash != expected_source_hash) return SOURCE_MISMATCH;
+-  if (flags_hash != FlagList::Hash()) return FLAGS_MISMATCH;
+-  uint32_t max_payload_length = this->size_ - kHeaderSize;
+-  if (payload_length > max_payload_length) return LENGTH_MISMATCH;
+-  if (Checksum(ChecksummedContent()) != c) return CHECKSUM_MISMATCH;
+   return CHECK_SUCCESS;
++
  }
  
- SerializedCodeSanityCheckResult SerializedCodeData::SanityCheckJustSource(
+ uint32_t SerializedCodeData::SourceHash(Handle<String> source,
 diff --git a/src/snapshot/deserializer.cc b/src/snapshot/deserializer.cc
-index 09fffbbed37..8ce3b2680ef 100644
+index ecfa889..ef6e9d1 100644
 --- a/src/snapshot/deserializer.cc
 +++ b/src/snapshot/deserializer.cc
-@@ -210,7 +210,6 @@ Deserializer<IsolateT>::Deserializer(IsolateT* isolate,
- #ifdef DEBUG
-   num_api_references_ = GetNumApiReferences(isolate);
+@@ -237,7 +237,6 @@ Deserializer::Deserializer(Isolate* isolate, Vector<const byte> payload,
+     }
+   }
  #endif  // DEBUG
 -  CHECK_EQ(magic_number_, SerializedData::kMagicNumber);
  }
  
- template <typename IsolateT>
+ void Deserializer::Rehash() {
