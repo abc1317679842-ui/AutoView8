@@ -65,27 +65,26 @@ call git checkout %V8_VERSION%
 call gclient sync
 
 REM 应用补丁（使用多级退避策略）
-echo =====[ Applying v8.patch ]=====
+echo =====[ Applying v8.patch (robust, no git-apply crash) ]=====
+cd /d "%V8_DIR%"
 set PATCH_FILE=%WORKSPACE_DIR%\Disassembler\v8.patch
-set PATCH_LOG=%WORKSPACE_DIR%\scripts\v8dasm-builders\patch-utils\patch-state.log
 
-REM 调用统一的 patch 应用脚本
-call "%WORKSPACE_DIR%\scripts\v8dasm-builders\patch-utils\apply-patch.cmd" ^
-    "%PATCH_FILE%" ^
-    "%V8_DIR%" ^
-    "%PATCH_LOG%" ^
-    "true"
-
-if %errorlevel% neq 0 (
-    echo ❌ Patch application failed. Build aborted.
-    echo 请检查日志文件: %PATCH_LOG%
-    exit /b 1
+REM 尝试 git apply（若 git 崩溃或失败则回退到 patch.exe）
+git apply --ignore-whitespace --whitespace=nowarn "%PATCH_FILE%" 2>nul
+if errorlevel 1 (
+  echo [fallback] git apply failed, trying patch.exe -p1
+  patch -p1 -N -F3 -i "%PATCH_FILE%"
 )
 
-echo ✅ Patch applied successfully
+REM 校验补丁确实生效（防止静默失败浪费编译时间）
+findstr /C:"Start BytecodeArray" src\diagnostics\objects-printer.cc >nul
+if errorlevel 1 (
+  echo ERROR: v8.patch was NOT applied. Aborting to avoid a useless build.
+  exit /b 1
+)
+echo [OK] v8.patch applied and verified
+echo.
 
-
-REM 配置构建
 echo =====[ Configuring V8 Build ]=====
 REM 构建 GN 参数字符串
 set GN_ARGS=target_os=\"win\" target_cpu=\"x64\" is_component_build=false is_debug=false use_custom_libcxx=false v8_monolithic=true v8_static_library=true v8_enable_disassembler=true v8_enable_object_print=true v8_use_external_startup_data=false dcheck_always_on=false symbol_level=0 is_clang=true
