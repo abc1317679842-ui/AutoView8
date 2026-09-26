@@ -121,10 +121,10 @@ clang++ %DASM_SOURCE% ^
     -lv8_libbase ^
     -lv8_libplatform ^
     -lv8_monolith ^
+    -DV8_COMPRESS_POINTERS ^
     -o %OUTPUT_NAME%
 
 REM 验证编译
-copy /Y "%HOMEPATH%\v8\v8\%OUTPUT_NAME%" "%GITHUB_WORKSPACE%\v8\v8\%OUTPUT_NAME%" >nul
 echo copied exe to workspace upload path
 if exist %OUTPUT_NAME% (
     echo =====[ Build Successful ]=====
@@ -136,3 +136,4 @@ if exist %OUTPUT_NAME% (
     echo ERROR: %OUTPUT_NAME% not found!
     exit /b 1
 )
+exit /b 0
