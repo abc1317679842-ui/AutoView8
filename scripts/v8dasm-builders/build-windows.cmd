@@ -113,18 +113,25 @@ set DASM_SOURCE=%WORKSPACE_DIR%\Disassembler\v8dasm.cpp
 set OUTPUT_NAME=v8dasm-%V8_VERSION%.exe
 cd /d "%V8_DIR%"
 
-set CLANGXX=%V8_DIR%\third_party\llvm-build\Release+Asserts\bin\clang++.exe
-%CLANGXX% %DASM_SOURCE% ^
-    -std=c++17 ^
-    -O2 ^
-    -DV8_COMPRESS_POINTERS ^
-    -I"%V8_DIR%" ^
-    -I"%V8_DIR%\include" ^
-    -L"%V8_DIR%\out.gn\x64.release\obj" ^
-    -lv8_libbase ^
-    -lv8_libplatform ^
-    -lv8_monolith ^
-    -o %OUTPUT_NAME%
+set TCBIN=%V8_DIR%\third_party\llvm-build\Release+Asserts\bin
+echo === toolchain bin contents ===
+dir /b "%TCBIN%"
+set CLANGXX=%TCBIN%\clang++.exe
+if not exist "%CLANGXX%" set CLANGXX=%TCBIN%\clang.exe
+if exist "%CLANGXX%" goto gnu_compile
+set CLANGXX=%TCBIN%\clang-cl.exe
+if exist "%CLANGXX%" goto cl_compile
+echo ERROR: no clang found in %TCBIN%
+exit /b 1
+
+:gnu_compile
+"%CLANGXX%" %DASM_SOURCE% -std=c++17 -O2 -DV8_COMPRESS_POINTERS -I"%V8_DIR%" -I"%V8_DIR%\include" -L"%V8_DIR%\out.gn\x64.release\obj" -lv8_libbase -lv8_libplatform -lv8_monolith -o %OUTPUT_NAME%
+goto verify
+
+:cl_compile
+"%CLANGXX%" %DASM_SOURCE% -std:c++17 -O2 -DV8_COMPRESS_POINTERS -I"%V8_DIR%" -I"%V8_DIR%\include" -Fe%OUTPUT_NAME% -link -LIBPATH:"%V8_DIR%\out.gn\x64.release\obj" v8_libbase.lib v8_libplatform.lib v8_monolith.lib
+
+:verify
 
 REM 把 exe 拷回 workspace 供上游 upload 步骤拾取
 if not exist "%GITHUB_WORKSPACE%\v8\v8" mkdir "%GITHUB_WORKSPACE%\v8\v8"
