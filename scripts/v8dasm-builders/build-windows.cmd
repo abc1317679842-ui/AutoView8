@@ -117,7 +117,7 @@ clang++ %DASM_SOURCE% ^
     -std=c++20 ^
     -O2 ^
     -DV8_COMPRESS_POINTERS ^
-    -I"%V8_DIR%\include" ^
+    -I"%V8_DIR%" ^
     -Lout.gn\x64.release\obj ^
     -lv8_libbase ^
     -lv8_libplatform ^
