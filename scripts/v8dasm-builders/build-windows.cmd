@@ -118,6 +118,7 @@ clang++ %DASM_SOURCE% ^
     -O2 ^
     -DV8_COMPRESS_POINTERS ^
     -I"%V8_DIR%" ^
+    -I"%V8_DIR%\include" ^
     -Lout.gn\x64.release\obj ^
     -lv8_libbase ^
     -lv8_libplatform ^
