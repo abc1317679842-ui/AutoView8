@@ -79,6 +79,9 @@ if errorlevel 1 (
   exit /b 1
 )
 echo [OK] patched sources in place
+echo =====[ Fix old bundled jinja2 for Python 3.10+ runners ]=====
+python "%WORKSPACE_DIR%\Disassembler\tools\fix_old_jinja2.py"
+
 echo.
 
 echo =====[ Installing VS2019 Build Tools (V8 9.1 needs VS2019, runner has 2022) ]=====
