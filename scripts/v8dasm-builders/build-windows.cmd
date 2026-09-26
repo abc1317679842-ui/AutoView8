@@ -125,6 +125,10 @@ clang++ %DASM_SOURCE% ^
     -DV8_COMPRESS_POINTERS ^
     -o %OUTPUT_NAME%
 
+REM 把 exe 拷回 workspace 供上游 upload 步骤拾取
+if not exist "%GITHUB_WORKSPACE%\v8\v8" mkdir "%GITHUB_WORKSPACE%\v8\v8"
+copy /Y "%V8_DIR%\%OUTPUT_NAME%" "%GITHUB_WORKSPACE%\v8\v8\%OUTPUT_NAME%" >nul
+
 REM 验证编译
 if exist %OUTPUT_NAME% (
     echo =====[ Build Successful ]=====
