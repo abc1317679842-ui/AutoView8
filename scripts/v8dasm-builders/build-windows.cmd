@@ -65,24 +65,20 @@ call git checkout %V8_VERSION%
 call gclient sync
 
 REM 应用补丁（使用多级退避策略）
-echo =====[ Applying v8.patch (robust, no git-apply crash) ]=====
+echo =====[ Applying pre-patched sources (copy, no patch tools) ]=====
 cd /d "%V8_DIR%"
-set PATCH_FILE=%WORKSPACE_DIR%\Disassembler\v8.patch
-
-REM 尝试 git apply（若 git 崩溃或失败则回退到 patch.exe）
-git apply --ignore-whitespace --whitespace=nowarn "%PATCH_FILE%" 2>nul
-if errorlevel 1 (
-  echo [fallback] git apply failed, trying patch.exe -p1
-  patch -p1 -N -F3 -i "%PATCH_FILE%"
-)
-
-REM 校验补丁确实生效（防止静默失败浪费编译时间）
+set P91=%WORKSPACE_DIR%\Disassembler\patched_91
+copy /Y "%P91%\src\diagnostics\objects-printer.cc" "%V8_DIR%\src\diagnostics\objects-printer.cc"
+copy /Y "%P91%\src\objects\objects.cc" "%V8_DIR%\src\objects\objects.cc"
+copy /Y "%P91%\src\objects\string.cc" "%V8_DIR%\src\objects\string.cc"
+copy /Y "%P91%\src\snapshot\code-serializer.cc" "%V8_DIR%\src\snapshot\code-serializer.cc"
+copy /Y "%P91%\src\snapshot\deserializer.cc" "%V8_DIR%\src\snapshot\deserializer.cc"
 findstr /C:"Start BytecodeArray" src\diagnostics\objects-printer.cc >nul
 if errorlevel 1 (
-  echo ERROR: v8.patch was NOT applied. Aborting to avoid a useless build.
+  echo ERROR: pre-patched sources not applied correctly
   exit /b 1
 )
-echo [OK] v8.patch applied and verified
+echo [OK] patched sources in place
 echo.
 
 echo =====[ Configuring V8 Build ]=====
@@ -111,6 +107,7 @@ set OUTPUT_NAME=v8dasm-%V8_VERSION%.exe
 clang++ %DASM_SOURCE% ^
     -std=c++20 ^
     -O2 ^
+    -DV8_COMPRESS_POINTERS ^
     -Iinclude ^
     -Lout.gn\x64.release\obj ^
     -lv8_libbase ^
@@ -119,6 +116,8 @@ clang++ %DASM_SOURCE% ^
     -o %OUTPUT_NAME%
 
 REM 验证编译
+copy /Y "%HOMEPATH%\v8\v8\%OUTPUT_NAME%" "%GITHUB_WORKSPACE%\v8\v8\%OUTPUT_NAME%" >nul
+echo copied exe to workspace upload path
 if exist %OUTPUT_NAME% (
     echo =====[ Build Successful ]=====
     dir %OUTPUT_NAME%
