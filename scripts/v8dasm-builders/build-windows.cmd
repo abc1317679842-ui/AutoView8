@@ -81,6 +81,11 @@ if errorlevel 1 (
 echo [OK] patched sources in place
 echo.
 
+echo =====[ Installing VS2019 Build Tools (V8 9.1 needs VS2019, runner has 2022) ]=====
+choco install visualstudio2019buildtools --package-parameters "--quiet --wait --norestart --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended" -y --no-progress
+choco install visualstudio2019-workload-vctools -y --no-progress
+echo VS2019 install done
+
 echo =====[ Configuring V8 Build ]=====
 REM 构建 GN 参数字符串
 set GN_ARGS=target_os=\"win\" target_cpu=\"x64\" is_component_build=false is_debug=false use_custom_libcxx=false v8_monolithic=true v8_static_library=true v8_enable_disassembler=true v8_enable_object_print=true v8_use_external_startup_data=false dcheck_always_on=false symbol_level=0 is_clang=true
