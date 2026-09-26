@@ -41,7 +41,7 @@ if not exist depot_tools (
 )
 
 set PATH=%CD%\depot_tools;%PATH%
-set DEPOT_TOOLS_WIN_TOOLCHAIN=0
+set DEPOT_TOOLS_WIN_TOOLCHAIN=1
 call gclient
 
 REM 创建工作目录
@@ -84,10 +84,6 @@ python "%WORKSPACE_DIR%\Disassembler\tools\fix_old_jinja2.py"
 
 echo.
 
-echo =====[ Installing VS2019 Build Tools (V8 9.1 needs VS2019, runner has 2022) ]=====
-choco install visualstudio2019buildtools --package-parameters "--quiet --wait --norestart --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended" -y --no-progress
-choco install visualstudio2019-workload-vctools -y --no-progress
-echo VS2019 install done
 
 echo =====[ Configuring V8 Build ]=====
 REM 构建 GN 参数字符串
@@ -108,6 +104,10 @@ echo =====[ Building V8 Monolith ]=====
 call ninja -C out.gn\x64.release v8_monolith
 
 REM 编译 v8dasm
+echo =====[ Locating pinned MSVC toolchain for v8dasm ]=====
+python "%WORKSPACE_DIR%\Disassembler\tools\locate_msvc.py" "%V8_DIR%"
+call "%TEMP%\v8_tc_env.cmd"
+
 echo =====[ Compiling v8dasm ]=====
 set DASM_SOURCE=%WORKSPACE_DIR%\Disassembler\v8dasm.cpp
 set OUTPUT_NAME=v8dasm-%V8_VERSION%.exe
