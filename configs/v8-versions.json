@@ -3,7 +3,7 @@
     {
       "v8_version": "9.1.269.40",
       "node_version": "Electron 13.6.9 (Myth.Cool)",
-      "build_args": "v8_enable_pointer_compression=true"
+      "build_args": "v8_enable_pointer_compression=true treat_warnings_as_errors=false"
     }
   ]
 }
