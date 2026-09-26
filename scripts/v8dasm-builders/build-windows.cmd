@@ -113,17 +113,17 @@ set DASM_SOURCE=%WORKSPACE_DIR%\Disassembler\v8dasm.cpp
 set OUTPUT_NAME=v8dasm-%V8_VERSION%.exe
 cd /d "%V8_DIR%"
 
-clang++ %DASM_SOURCE% ^
-    -std=c++20 ^
+set CLANGXX=%V8_DIR%\third_party\llvm-build\Release+Asserts\bin\clang++.exe
+%CLANGXX% %DASM_SOURCE% ^
+    -std=c++17 ^
     -O2 ^
     -DV8_COMPRESS_POINTERS ^
     -I"%V8_DIR%" ^
     -I"%V8_DIR%\include" ^
-    -Lout.gn\x64.release\obj ^
+    -L"%V8_DIR%\out.gn\x64.release\obj" ^
     -lv8_libbase ^
     -lv8_libplatform ^
     -lv8_monolith ^
-    -DV8_COMPRESS_POINTERS ^
     -o %OUTPUT_NAME%
 
 REM 把 exe 拷回 workspace 供上游 upload 步骤拾取
